@@ -7,7 +7,7 @@ const router = require("./routes");
 const formidableMiddleware = require("express-formidable");
 const mongoose = require("mongoose");
 const User = require("./models/User");
-const argon2 = require("argon2");
+const bcrypt = require("bcrypt"); // ✅ Replaced argon2 with bcrypt
 const passport = require("passport");
 const { Strategy, ExtractJwt } = require("passport-jwt");
 const { AsyncNedb } = require("nedb-async");
@@ -124,7 +124,7 @@ module.exports = () => {
         store.config.rootUser;
 
       const existingUser = await User.findOne({ email });
-      const hashedPassword = await argon2.hash(password);
+      const hashedPassword = await bcrypt.hash(password, 10); // ✅ Updated hashing
 
       if (!existingUser) {
         await new User({

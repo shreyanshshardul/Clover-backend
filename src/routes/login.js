@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const argon2 = require('argon2');
+const bcrypt = require('bcrypt'); // ✅ replaced argon2 with bcrypt
 const store = require('../store');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
@@ -25,10 +25,15 @@ module.exports = (req, res, next) => {
       picture: user.picture,
       username: user.username,
     };
-    jwt.sign(payload, store.config.secret, { expiresIn: 60 * 60 * 24 * 60 }, (err, token) => {
-      if (err) return res.status(500).json({ token: 'Error signing token.' });
-      res.status(200).json({ token });
-    });
+    jwt.sign(
+      payload,
+      store.config.secret,
+      { expiresIn: 60 * 60 * 24 * 60 },
+      (err, token) => {
+        if (err) return res.status(500).json({ token: 'Error signing token.' });
+        res.status(200).json({ token });
+      }
+    );
   };
 
   const sendError = () => res.status(400).json({ password: 'Wrong password.' });
@@ -42,6 +47,14 @@ module.exports = (req, res, next) => {
     .populate([{ path: 'endpoint', strictPopulate: false }])
     .then((user) => {
       if (!user) return res.status(404).json({ email: 'User not found.' });
-      argon2.verify(user.password, password).then((correct) => (correct ? sendResponse(user) : sendError()));
+
+      // ✅ bcrypt password verify
+      bcrypt.compare(password, user.password)
+        .then((correct) => (correct ? sendResponse(user) : sendError()))
+        .catch(() => sendError());
+    })
+    .catch((err) => {
+      console.error('❌ Login error:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
     });
 };

@@ -1,35 +1,35 @@
-const argon2 = require('argon2');
+const bcrypt = require('bcrypt'); // ✅ replaced argon2
 const isEmpty = require('../../utils/isEmpty');
 const User = require('../../models/User');
 
 module.exports = async (req, res) => {
   const { password } = req.fields;
 
-  let user;
-
   try {
-    user = await User.findById(req.user.id);
-  } catch (e) {
-    return res.status(500).json({ status: 'error', message: 'database read error' });
-  }
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ status: 'error', message: 'user not found' });
+    }
 
-  if (!user) {
-    return res.status(404).json({ status: 'error', message: 'user not found' });
-  }
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        status: 'error',
+        password: 'password too short, must be at least 6 characters',
+      });
+    }
 
-  if (password.length < 6) {
-    return res.status(404).json({ status: 'error', password: 'password too short, must be at least 6 characters' });
-  }
+    if (!isEmpty(password)) {
+      const saltRounds = 10;
+      user.password = await bcrypt.hash(password, saltRounds);
+    }
 
-  if (!isEmpty(password)) user.password = await argon2.hash(password);
-
-  try {
     await user.save();
-  } catch (e) {
-    return res.status(500).json({ status: 'error', message: 'database write error' });
+
+    const updatedUser = await User.findById(req.user.id);
+
+    res.status(200).json({ status: 'success', user: updatedUser });
+  } catch (error) {
+    console.error('❌ Password Update Error:', error);
+    res.status(500).json({ status: 'error', message: 'internal server error' });
   }
-
-  user = await User.findById(req.user.id);
-
-  res.status(200).json({ status: 'success', user });
 };

@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/Honeyside/Clover#readme",
   "dependencies": {
-    "argon2": "0.31.2",
+    "bcrypt": "^6.0.0",
     "bluebird": "3.7.2",
     "colors": "1.4.0",
     "cors": "2.8.5",

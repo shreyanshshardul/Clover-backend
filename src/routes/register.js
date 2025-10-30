@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const argon2 = require('argon2');
+const bcrypt = require('bcrypt');  // ✅ changed
 const validator = require('validator');
 const isEmpty = require('../utils/isEmpty');
 const xss = require('xss');
@@ -32,8 +32,10 @@ module.exports = async (req, res, next) => {
 
   if (Object.keys(errors).length > 0) return res.status(400).json(errors);
 
-  argon2
-    .hash(password)
+  // ✅ bcrypt hashing instead of argon2
+  const saltRounds = 10;
+  bcrypt
+    .hash(password, saltRounds)
     .then((hash) =>
       new User({
         username: xss(username),
@@ -45,6 +47,8 @@ module.exports = async (req, res, next) => {
         lastOnline: Date.now(),
       })
         .save()
-        .then((user) => res.status(200).json(user)),
-    );
+        .then((user) => res.status(200).json(user))
+        .catch((err) => res.status(500).json({ message: err.message }))
+    )
+    .catch((err) => res.status(500).json({ message: 'Error hashing password' }));
 };
